@@ -92,12 +92,12 @@ def practice_view_keyboard(category_id: str) -> InlineKeyboardMarkup:
 
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
-    count = total_practices_count()
     text = (
         "Привет! 👋\n\n"
-        f"Здесь собрано {count} аудиопрактик — для сна, снятия стресса, "
-        "фокуса и бодрости.\n\n"
-        "Выбери категорию, чтобы увидеть практики внутри неё:"
+        "Здесь собраны аудиопрактики, созданные специально для мам. "
+        "Для разных состояний и ситуаций, чтобы восстановиться, справиться "
+        "с тревогой или просто побыть наедине с собой.\n\n"
+        "Выбери категорию и найди практику, которая нужна тебе сейчас."
     )
     await message.answer(text, reply_markup=categories_keyboard())
 
