@@ -31,7 +31,7 @@ CATEGORIES = {
         "emoji": "💛",
         "practices": {
             "self_esteem_01": {
-                "title": "Я — мама, но я не только мама",
+                "title": "Не только мама",
                 "description": "Практика для возвращения к своей личности за пределами роли мамы.",
                 "duration": "10 мин",
                 "file": "self_esteem_01.mp3",
