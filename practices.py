@@ -33,7 +33,7 @@ CATEGORIES = {
             "self_esteem_01": {
                 "title": "Не только мама",
                 "description": "Практика для возвращения к своей личности за пределами роли мамы.",
-                "duration": "10 мин",
+                "duration": "6 мин",
                 "file": "self_esteem_01.mp3",
             },
             "self_esteem_02": {
