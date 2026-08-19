@@ -179,9 +179,6 @@ def run_webhook(bot: Bot, dp: Dispatcher, base_url: str, port: int) -> None:
             total_practices_count(),
         )
 
-    async def on_shutdown(app: web.Application) -> None:
-        await bot.delete_webhook()
-
     async def health(request: web.Request) -> web.Response:
         # Простой ответ для проверок доступности хостингом.
         return web.Response(text="OK")
@@ -191,7 +188,13 @@ def run_webhook(bot: Bot, dp: Dispatcher, base_url: str, port: int) -> None:
     SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
     setup_application(app, dp, bot=bot)
     app.on_startup.append(on_startup)
-    app.on_shutdown.append(on_shutdown)
+    # Намеренно НЕ удаляем вебхук при остановке (on_shutdown). Render на
+    # бесплатном тарифе "усыпляет" сервис при простое, посылая сигнал
+    # остановки — если в этот момент удалить вебхук, следующее сообщение
+    # в Telegram не сможет "разбудить" сервис (Telegram будет пытаться
+    # достучаться до вебхука, которого больше нет, и просто копить
+    # сообщения в очереди). Вебхук должен оставаться прописанным всегда;
+    # он и так переустанавливается заново при каждом старте (on_startup).
 
     web.run_app(app, host="0.0.0.0", port=port)
 
