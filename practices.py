@@ -45,7 +45,7 @@ CATEGORIES = {
             "self_esteem_03": {
                 "title": "Я не обязана быть идеальной",
                 "description": "Практика для отпускания перфекционизма и завышенных ожиданий к себе.",
-                "duration": "8 мин",
+                "duration": "6 мин",
                 "file": "self_esteem_03.mp3",
             },
             "self_esteem_04": {
