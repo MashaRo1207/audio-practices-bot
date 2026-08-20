@@ -9,5 +9,5 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping bot URL to prevent Render free-tier sleep
-        run: curl -s -o /dev/null -w "HTTP status: %{http_code}\n" https://audio-practices-bot.onrender.com || true
+      - name: Ping bot URL
+        run: curl -s https://audio-practices-bot.onrender.com > /dev/null
