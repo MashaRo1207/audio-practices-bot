@@ -51,7 +51,7 @@ CATEGORIES = {
             "self_esteem_04": {
                 "title": "Я справляюсь",
                 "description": "Поддерживающая практика в моменты сомнений в своих силах.",
-                "duration": "7 мин",
+                "duration": "5 мин",
                 "file": "self_esteem_04.mp3",
             },
             "self_esteem_05": {
