@@ -39,7 +39,7 @@ CATEGORIES = {
             "self_esteem_02": {
                 "title": "Принятие материнства",
                 "description": "Мягкое принятие своего нового опыта и себя в роли мамы.",
-                "duration": "9 мин",
+                "duration": "5 мин",
                 "file": "self_esteem_02.mp3",
             },
             "self_esteem_03": {
