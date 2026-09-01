@@ -81,8 +81,8 @@ CATEGORIES = {
             "resource_02": {
                 "title": "Можно быть уставшей",
                 "description": "Практика принятия усталости без чувства вины.",
-                "duration": "8 мин",
-                "file": "resource_02.mp3",
+                "duration": "10 мин",
+                "file": "можно быть уставшей.mp3",
             },
             "resource_03": {
                 "title": "Утро мамы",
