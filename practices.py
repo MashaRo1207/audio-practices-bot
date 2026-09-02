@@ -87,8 +87,8 @@ CATEGORIES = {
             "resource_03": {
                 "title": "Утро мамы",
                 "description": "Короткая практика для мягкого и осознанного начала дня.",
-                "duration": "7 мин",
-                "file": "resource_03.mp3",
+                "duration": "8 мин",
+                "file": "утро мамы с музыкой 819.mp3",
             },
             "resource_04": {
                 "title": "Вечерняя практика",
