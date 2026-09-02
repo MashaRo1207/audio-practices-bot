@@ -1,32 +1,28 @@
 # -*- coding: utf-8 -*-
 """
 Telegram-бот с аудиопрактиками.
-
 Пользователь выбирает категорию, затем практику внутри неё, и получает
 аудиофайл с короткой практикой. Если аудиофайл ещё не добавлен в папку
 audio/, бот присылает описание практики и предупреждает, что аудио скоро
 появится — это позволяет тестировать бота ещё до того, как все записи
 будут готовы.
-
 Бот умеет работать в двух режимах, без каких-либо изменений в коде:
-
 * Polling (для локального запуска на своём компьютере) — используется,
   если не заданы переменные окружения PORT и RENDER_EXTERNAL_URL/WEBHOOK_URL.
 * Webhook (для хостинга, например Render) — включается автоматически,
   если хостинг задаёт переменную PORT (так делает Render и большинство
   PaaS-платформ) и известен внешний адрес сервиса.
-
 Запуск локально:
     1) pip install -r requirements.txt
     2) создать .env на основе .env.example и вписать токен бота
     3) python bot.py
 """
-
 import asyncio
 import logging
 import os
+import unicodedata
 from pathlib import Path
-
+from typing import Optional
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import (
@@ -39,23 +35,35 @@ from aiogram.types import (
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 from dotenv import load_dotenv
-
 from practices import CATEGORIES, get_practice, total_practices_count
-
 load_dotenv()
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 AUDIO_DIR = Path(__file__).parent / "audio"
 WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 router = Router()
-
-
+# ---------- Поиск аудиофайла ----------
+def find_audio_file(filename: str) -> Optional[Path]:
+    """Найти файл в AUDIO_DIR по имени, не завися от нормализации Unicode.
+    Одни и те же на вид русские буквы (например «й») могут быть записаны
+    разными последовательностями Unicode-символов в зависимости от того,
+    на какой системе создавался файл (это особенно характерно для файлов,
+    загруженных с Mac). Из-за этого точное побайтовое сравнение имён
+    (обычный Path.exists()) иногда не находит файл, который на самом деле
+    лежит в папке. Эта функция сравнивает имена в нормализованном виде,
+    поэтому такие различия больше не важны.
+    """
+    if not AUDIO_DIR.is_dir():
+        return None
+    target = unicodedata.normalize("NFC", filename)
+    for entry in AUDIO_DIR.iterdir():
+        if not entry.is_file():
+            continue
+        if unicodedata.normalize("NFC", entry.name) == target:
+            return entry
+    return None
 # ---------- Клавиатуры ----------
-
 def categories_keyboard() -> InlineKeyboardMarkup:
     buttons = []
     for cat_id, cat in CATEGORIES.items():
@@ -64,8 +72,6 @@ def categories_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=text, callback_data=f"cat:{cat_id}")]
         )
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
 def practices_keyboard(category_id: str) -> InlineKeyboardMarkup:
     category = CATEGORIES[category_id]
     buttons = []
@@ -78,18 +84,13 @@ def practices_keyboard(category_id: str) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="⬅️ Все категории", callback_data="back:categories")]
     )
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
 def practice_view_keyboard(category_id: str) -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(text="⬅️ К практикам категории", callback_data=f"cat:{category_id}")],
         [InlineKeyboardButton(text="🏠 Все категории", callback_data="back:categories")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
 # ---------- Хендлеры ----------
-
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
     text = (
@@ -100,13 +101,9 @@ async def cmd_start(message: Message) -> None:
         "Выбери категорию и найди практику, которая нужна тебе сейчас."
     )
     await message.answer(text, reply_markup=categories_keyboard())
-
-
 @router.message(F.text == "/practices")
 async def cmd_practices(message: Message) -> None:
     await cmd_start(message)
-
-
 @router.callback_query(F.data == "back:categories")
 async def show_categories(callback: CallbackQuery) -> None:
     # Отправляем новое сообщение, а не редактируем предыдущее: предыдущим
@@ -117,8 +114,6 @@ async def show_categories(callback: CallbackQuery) -> None:
         reply_markup=categories_keyboard(),
     )
     await callback.answer()
-
-
 @router.callback_query(F.data.startswith("cat:"))
 async def show_category(callback: CallbackQuery) -> None:
     category_id = callback.data.split(":", 1)[1]
@@ -126,12 +121,9 @@ async def show_category(callback: CallbackQuery) -> None:
     if not category:
         await callback.answer("Категория не найдена", show_alert=True)
         return
-
     text = f"{category['emoji']} {category['title']}\n\nВыбери практику:"
     await callback.message.answer(text, reply_markup=practices_keyboard(category_id))
     await callback.answer()
-
-
 @router.callback_query(F.data.startswith("pr:"))
 async def show_practice(callback: CallbackQuery) -> None:
     _, category_id, practice_id = callback.data.split(":", 2)
@@ -139,13 +131,10 @@ async def show_practice(callback: CallbackQuery) -> None:
     if not practice:
         await callback.answer("Практика не найдена", show_alert=True)
         return
-
     caption = f"🎧 {practice['title']} · {practice['duration']}\n\n{practice['description']}"
-    audio_path = AUDIO_DIR / practice["file"]
-
+    audio_path = find_audio_file(practice["file"])
     await callback.answer()
-
-    if audio_path.exists():
+    if audio_path is not None:
         await callback.message.answer_audio(
             audio=FSInputFile(audio_path),
             caption=caption,
@@ -159,16 +148,12 @@ async def show_practice(callback: CallbackQuery) -> None:
             "Загляните позже!"
         )
         await callback.message.answer(text, reply_markup=practice_view_keyboard(category_id))
-
-
 async def run_polling(bot: Bot, dp: Dispatcher) -> None:
     logger.info(
         "Бот запущен в режиме polling. Практик в базе: %s",
         total_practices_count(),
     )
     await dp.start_polling(bot)
-
-
 def run_webhook(bot: Bot, dp: Dispatcher, base_url: str, port: int) -> None:
     async def on_startup(app: web.Application) -> None:
         webhook_url = f"{base_url}{WEBHOOK_PATH}"
@@ -178,11 +163,9 @@ def run_webhook(bot: Bot, dp: Dispatcher, base_url: str, port: int) -> None:
             webhook_url,
             total_practices_count(),
         )
-
     async def health(request: web.Request) -> web.Response:
         # Простой ответ для проверок доступности хостингом.
         return web.Response(text="OK")
-
     app = web.Application()
     app.router.add_get("/", health)
     SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
@@ -195,29 +178,21 @@ def run_webhook(bot: Bot, dp: Dispatcher, base_url: str, port: int) -> None:
     # достучаться до вебхука, которого больше нет, и просто копить
     # сообщения в очереди). Вебхук должен оставаться прописанным всегда;
     # он и так переустанавливается заново при каждом старте (on_startup).
-
     web.run_app(app, host="0.0.0.0", port=port)
-
-
 def main() -> None:
     if not BOT_TOKEN:
         raise RuntimeError(
             "Не найден BOT_TOKEN. Создайте файл .env на основе .env.example "
             "и укажите там токен, полученный у @BotFather."
         )
-
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     dp.include_router(router)
-
     port = os.getenv("PORT")
     base_url = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("WEBHOOK_URL")
-
     if port and base_url:
         run_webhook(bot, dp, base_url.rstrip("/"), int(port))
     else:
         asyncio.run(run_polling(bot, dp))
-
-
 if __name__ == "__main__":
     main()
