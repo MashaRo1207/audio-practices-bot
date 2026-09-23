@@ -136,7 +136,11 @@ async def show_practice(callback: CallbackQuery) -> None:
     await callback.answer()
     if audio_path is not None:
         await callback.message.answer_audio(
-            audio=FSInputFile(audio_path),
+            # filename="audio.mp3" — то, что Telegram покажет/сохранит как
+            # имя файла, не зависит от реального имени файла на диске
+            # (audio_path), которое остаётся русскоязычным для читаемости
+            # в самом репозитории.
+            audio=FSInputFile(audio_path, filename="audio.mp3"),
             caption=caption,
             reply_markup=practice_view_keyboard(category_id),
         )
